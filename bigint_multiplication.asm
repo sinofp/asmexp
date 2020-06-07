@@ -23,46 +23,40 @@ ans dword 400 dup(0)
 size1 dword 0
 size2 dword 0
 size3 dword ?
-temp dword ?
 is_neg byte 0
 
 .code
+read_int proc stdcall num: dword, buf: ptr dword,  siz: ptr dword
+    local temp: dword
+    pushad
+    invoke printf, offset input_prompt, num
+
+    mov ebx, buf
+    mov esi, siz
+
+    mov dword ptr [esi], 0
+    invoke scanf, offset str_in, addr temp
+    .if temp == '-'
+        xor is_neg, 1
+        invoke scanf, offset str_in, addr temp
+    .endif
+    .while temp != LF
+        sub temp, '0'
+        mov edx, temp
+        mov edi, dword ptr [esi]
+        mov [ebx][edi*4], edx
+        inc dword ptr [esi]
+        invoke scanf, offset str_in, addr temp
+    .endw
+
+    popad
+    ret
+read_int endp
+
 main proc
-    invoke printf, offset input_prompt, 1
-
-    ; read first big int
-    mov size1, 0
-    invoke scanf, offset str_in, offset temp
-    .if temp == '-'
-        xor is_neg, 1
-        invoke scanf, offset str_in, offset temp
-    .endif
-    .while temp != LF
-        sub temp, '0'
-        mov edx, temp
-        mov edi, size1
-        mov buf1[edi*4], edx
-        inc size1
-        invoke scanf, offset str_in, offset temp
-    .endw
-
-    invoke printf, offset input_prompt, 2
-
-    ; read second big int
-    mov size2, 0
-    invoke scanf, offset str_in, offset temp
-    .if temp == '-'
-        xor is_neg, 1
-        invoke scanf, offset str_in, offset temp
-    .endif
-    .while temp != LF
-        sub temp, '0'
-        mov edx, temp
-        mov edi, size2
-        mov buf2[edi*4], edx
-        inc size2
-        invoke scanf, offset str_in, offset temp
-    .endw
+    ; read big ints
+    invoke read_int, 1, offset buf1, offset size1
+    invoke read_int, 2, offset buf2, offset size2
 
     mov esi, 0
     .while esi < size1 ; for i in range(size1)
@@ -111,6 +105,7 @@ main proc
         inc ecx
     .endw
 
+    mov eax, 0 ; return 0，看到返回代码不是0就难受
     ret
 main endp
 end main
