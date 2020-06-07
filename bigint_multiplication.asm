@@ -16,14 +16,14 @@ str_in byte '%c', 0
 neg_sign byte '-', 0
 szOutc byte '%c', 0
 
-.data?
-buf1 dword 200 dup(0)
-buf2 dword 200 dup(0)
-ans dword 400 dup(0)
-size1 dword 0
-size2 dword 0
+.data? ; _bss 段，初始值全0
+buf1 dword 200 dup(?)
+buf2 dword 200 dup(?)
+ans dword 400 dup(?)
+size1 dword ?
+size2 dword ?
 size3 dword ?
-is_neg byte 0
+is_neg byte ?
 
 .code
 read_int proc stdcall num: dword, buf: ptr dword,  siz: ptr dword
@@ -58,6 +58,7 @@ main proc
     invoke read_int, 1, offset buf1, offset size1
     invoke read_int, 2, offset buf2, offset size2
 
+    ; 乘
     mov esi, 0
     .while esi < size1 ; for i in range(size1)
         mov edi, 0
@@ -78,7 +79,7 @@ main proc
     add ecx, size2
     dec ecx
     mov size3, ecx
-    .while ecx <= size3; ecx >= (unsigned long)0
+    .while sdword ptr ecx >= 0
         mov eax, ans[ecx*4]
         mov ebx, 10
         cdq
@@ -88,21 +89,20 @@ main proc
         add ans[ecx*4], eax
     .endw
 
+    ; 输出
     invoke printf, offset output_prompt
     .if is_neg != 0
         invoke printf, offset neg_sign
     .endif
-    mov ecx, 0
+    mov esi, 0
     .if ans[0] == 0
-        inc ecx
+        inc esi
     .endif
-    .while ecx <= size3
-        pushad
-        mov ebx, ans[ecx*4]
+    .while esi <= size3
+        mov ebx, ans[esi*4]
         add ebx, '0'
         invoke printf, offset szOutc, ebx
-        popad
-        inc ecx
+        inc esi
     .endw
 
     mov eax, 0 ; return 0，看到返回代码不是0就难受
