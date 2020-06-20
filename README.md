@@ -10,7 +10,7 @@
 
 [![bigint-asmvpython.png](https://i.postimg.cc/R0ktzYb8/bigint-asmvpython.png)](https://postimg.cc/XZgqfsWc)
 
-[![bigint.png](https://i.postimg.cc/mZQYTb4S/bigint.png)](https://postimg.cc/z3GbjYVL)
+![大数乘法流程图](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/sinofp/asmexp/master/bigint.puml)
 
 ## 图形界面计算器
 
@@ -20,7 +20,7 @@
 
 [![t800.gif](https://i.postimg.cc/fb2HjMyd/t800.gif)](https://postimg.cc/McBbz2yZ)
 
-[![calc.png](https://i.postimg.cc/BQ4x6dQf/calc.png)](https://postimg.cc/JtYyYYkp)
+![计算器流程图](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/sinofp/asmexp/master/calc.puml)
 
 ## 多重循环反汇编
 
