@@ -1,10 +1,8 @@
 .386
-.model flat,stdcall
+.model flat, stdcall
 option casemap:none
 
 include windows.inc
-include gdi32.inc
-includelib gdi32.lib
 include user32.inc
 includelib user32.lib
 include kernel32.inc
@@ -18,12 +16,12 @@ atof proto c :ptr sbyte
 LF equ 0AH
 szClassName db 'MyClass', 0
 szCaptionMain db 'T-800 Calculator', 0
+szButton db 'button', 0
+szStatic byte 'static', 0
 szLogFlt byte 'num is: %f', LF, 0
 szLogOp byte 'operator is : %s', LF, 0
 szF2s byte '%f', 0
-szButton db 'button', 0
 szZero byte '0', 0
-szStatic byte 'static', 0
 em equ 100
 buf_size equ 200
 ; button position and text
@@ -54,14 +52,15 @@ textac  byte 'AC', 0, 0
 text_list dword text0, text1, text2, text3, text4, text5, text6, text7, text8, text9, textdot, textadd, textsub, textmul, textdiv, textsin, textcos, texttan, texteq, textac
 
 .data?
-hInstance dd ?  ;存放应用程序的句柄
-hWinMain dd ?   ;存放窗口的句柄
+hInstance dd ? ; 应用程序的句柄
+hWinMain dd ?  ; 窗口的句柄
 buf byte buf_size dup(?)
 num real8 ?
 op dword ?
 
 .code
 clean_buf proc stdcall
+    ; 用RtlZeroMemory也行，但我想写
     xor ecx, ecx
     .while ecx < buf_size
         mov buf[ecx], byte ptr 0
@@ -70,12 +69,12 @@ clean_buf proc stdcall
     ret
 clean_buf endp
 
-_ProcWinMain proc stdcall uses ebx edi esi, hWnd, uMsg, wParam, lParam  ;窗口过程
+_ProcWinMain proc stdcall uses ebx edi esi, hWnd, uMsg, wParam, lParam
     local stPs:PAINTSTRUCT
     local stRect:RECT
     local hDc
 
-    mov eax, uMsg  ;uMsg是消息类型，如下面的WM_PAINT,WM_CREATE
+    mov eax, uMsg ; 把消息放给eax
 
     .if eax==WM_CLOSE  ;窗口关闭消息
         invoke DestroyWindow,hWinMain
@@ -89,16 +88,14 @@ _ProcWinMain proc stdcall uses ebx edi esi, hWnd, uMsg, wParam, lParam  ;窗口�
             mov esi, x_list[ecx*4]
             mov edi, y_list[ecx*4]
             mov edx, text_list[ecx*4]
-            ; lea eax, text0
-            ; mov edx, [eax][ecx*4]
             invoke CreateWindowEx, NULL, offset szButton, edx, WS_CHILD or WS_VISIBLE, esi, edi, em, em, hWnd, ecx, hInstance, NULL
             popad
             inc ecx
         .endw
-        ; 生成数字显示区
-		invoke CreateWindowEx, NULL, offset szStatic, offset szZero, WS_CHILD or WS_VISIBLE or ES_RIGHT,0,0,4*em,em,hWnd,20,hInstance,NULL ;DIS 20
-    .elseif eax==WM_COMMAND  ;点击时候产生的消息是WM_COMMAND
-        mov eax, wParam  ;其中参数wParam里存的是句柄，如果点击了一个按钮，则wParam是那个按钮的句柄
+        ; 生成数字显示区，不想换行
+		invoke CreateWindowEx, NULL, offset szStatic, offset szZero, WS_CHILD or WS_VISIBLE or ES_RIGHT, 0, 0, 4*em, em, hWnd, 20, hInstance, NULL
+    .elseif eax==WM_COMMAND ; 点击按钮
+        mov eax, wParam ; wParam是按钮的句柄
         .if eax < 11 ; 输入的是数字或小数点
             xor ecx, ecx
             .while buf[ecx] != 0
@@ -114,7 +111,7 @@ _ProcWinMain proc stdcall uses ebx edi esi, hWnd, uMsg, wParam, lParam  ;窗口�
             fstp num
             invoke SetDlgItemText, hWnd, 20, offset buf
             invoke printf, offset szLogFlt, num
-        .elseif eax < 18 ; +-*/ sin cos
+        .elseif eax < 18 ; + - * / sin cos tan
             mov op, eax
             fld num
             fst num
@@ -172,10 +169,11 @@ _ProcWinMain proc stdcall uses ebx edi esi, hWnd, uMsg, wParam, lParam  ;窗口�
             .endif
             invoke clean_buf
         .else ; AC
+            invoke printf, offset szLogOp, text_list[eax*4]
             invoke SetDlgItemText, hWnd, 20, offset szZero
             invoke clean_buf
         .endif
-    .else  ;否则按默认处理方法处理消息
+    .else ; 都不是，按默认处理方法处理消息
         invoke DefWindowProc, hWnd, uMsg, wParam, lParam
         ret
     .endif
@@ -184,46 +182,44 @@ _ProcWinMain proc stdcall uses ebx edi esi, hWnd, uMsg, wParam, lParam  ;窗口�
     ret
 _ProcWinMain endp
 
-_WinMain proc stdcall ;窗口程序
-    local stWndClass:WNDCLASSEX  ;定义了一个结构变量，它的类型是WNDCLASSEX，一个窗口类定义了窗口的一些主要属性，图标，光标，背景色等，这些参数不是单个传递，而是封装在WNDCLASSEX中传递的。
-    local stMsg:MSG	;还定义了stMsg，类型是MSG，用来作消息传递的	
+_WinMain proc stdcall
+    local stWndClass: WNDCLASSEX ; 窗口属性
+    local stMsg: MSG             ; 用来传消息	
 
-    invoke GetModuleHandle,NULL  ;得到应用程序的句柄，把该句柄的值放在hInstance中，句柄是什么？简单点理解就是某个事物的标识，有文件句柄，窗口句柄，可以通过句柄找到对应的事物
-    mov hInstance,eax
-    invoke RtlZeroMemory,addr stWndClass,sizeof stWndClass  ;将stWndClass初始化全0
+    ; 初始化窗口属性
+    invoke GetModuleHandle, NULL
+    mov hInstance, eax
+    invoke RtlZeroMemory, addr stWndClass, sizeof stWndClass
+    invoke LoadCursor, 0, IDC_ARROW
+    mov stWndClass.hCursor, eax
+    push hInstance
+    pop stWndClass.hInstance
+    mov stWndClass.cbSize, sizeof WNDCLASSEX
+    mov stWndClass.style, CS_HREDRAW or CS_VREDRAW
+    mov stWndClass.lpfnWndProc, offset _ProcWinMain
+    mov stWndClass.hbrBackground, COLOR_WINDOW+1
+    mov stWndClass.lpszClassName, offset szClassName
 
-    invoke LoadCursor,0,IDC_ARROW
-    mov stWndClass.hCursor,eax					;---------------------------------------
-    push hInstance							;
-    pop stWndClass.hInstance					;
-    mov stWndClass.cbSize,sizeof WNDCLASSEX			;这部分是初始化stWndClass结构中各字段的值，即窗口的各种属性
-    mov stWndClass.style,CS_HREDRAW or CS_VREDRAW			;入门的话，这部分直接copy- -。。。为了赶汇编作业，没时间钻研
-    mov stWndClass.lpfnWndProc,offset _ProcWinMain			;
-    ;上面这条语句其实就是指定了该窗口程序的窗口过程是_ProcWinMain	;
-    mov stWndClass.hbrBackground,COLOR_WINDOW+1			;
-    mov stWndClass.lpszClassName,offset szClassName		;---------------------------------------
-    invoke RegisterClassEx,addr stWndClass  ;注册窗口类，注册前先填写参数WNDCLASSEX结构
+    ; 注册窗口
+    invoke RegisterClassEx, addr stWndClass
+    ; 创建窗口
+    invoke CreateWindowEx, WS_EX_CLIENTEDGE, offset szClassName, offset szCaptionMain, WS_OVERLAPPEDWINDOW, 600, 0, 4*em+20, 6*em+40, NULL,NULL,hInstance,NULL
+    mov hWinMain, eax
+    ; 显示窗口
+    invoke ShowWindow, hWinMain, SW_SHOWNORMAL
+    invoke UpdateWindow, hWinMain
 
-    invoke CreateWindowEx,WS_EX_CLIENTEDGE,\  ;建立窗口
-            offset szClassName,offset szCaptionMain,\  ;szClassName和szCaptionMain是在常量段中定义的字符串常量
-            WS_OVERLAPPEDWINDOW,600,0,4*em+20,6*em+40,\	;szClassName是建立窗口使用的类名字符串指针，这里是'MyClass'，表示用'MyClass'类来建立这个窗口，这个窗口拥有'MyClass'的所有属性
-            NULL,NULL,hInstance,NULL		;如果改成'szButton'那么建立的将是一个按钮，szCaptionMain代表的则是窗口的名称，该名称会显示在标题栏中
-    mov hWinMain,eax  ;建立窗口后句柄会放在eax中，现在把句柄放在hWinMain中。
-    invoke ShowWindow,hWinMain,SW_SHOWNORMAL  ;显示窗口，注意到这个函数传递的参数是窗口的句柄，正如前面所说的，通过句柄可以找到它所标识的事物
-    invoke UpdateWindow,hWinMain  ;刷新窗口客户区
-
-    .while TRUE  ;进入无限的消息获取和处理的循环
-        invoke GetMessage,addr stMsg,NULL,0,0  ;从消息队列中取出第一个消息，放在stMsg结构中
-        .break .if eax==0  ;如果是退出消息，eax将会置成0，退出循环
-        invoke TranslateMessage,addr stMsg  ;这是把基于键盘扫描码的按键信息转换成对应的ASCII码，如果消息不是通过键盘输入的，这步将跳过
-        invoke DispatchMessage,addr stMsg  ;这条语句的作用是找到该窗口程序的窗口过程，通过该窗口过程来处理消息
+    .while TRUE ; 消息循环
+        invoke GetMessage, addr stMsg, NULL, 0, 0
+        .break .if eax==0 ; 0是退出
+        invoke DispatchMessage, addr stMsg
     .endw
     ret
 _WinMain endp
 
 main proc
     call _WinMain
-    invoke ExitProcess,NULL
+    invoke ExitProcess, NULL
     ret
 main endp
 end main
