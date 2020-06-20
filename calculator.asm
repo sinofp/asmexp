@@ -114,7 +114,6 @@ _ProcWinMain proc stdcall uses ebx edi esi, hWnd, uMsg, wParam, lParam
         .elseif eax < 18 ; + - * / sin cos tan
             mov op, eax
             fld num
-            fst num
             invoke printf, offset szLogOp, text_list[eax*4]
             invoke clean_buf
             invoke SetDlgItemText, hWnd, 20, offset szZero
