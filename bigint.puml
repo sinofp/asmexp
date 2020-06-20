@@ -1,0 +1,27 @@
+@startuml bigint
+start
+:读取两个数字到字符串中
+（同时用异或决定最后的答案有没有负号）;
+:mov esi 0;
+while (esi < size1（相当于for i in range(len(buf1)）)
+    :mov edi 0;
+    while (edi < size2（相当于for j in range(len(buf2)）)
+        :eax = buf1[i]*buf2[j];
+        :ebx = esi+edi+1;
+        :add ans[ebx*4], eax
+        （就是第一遍向挨个乘起来）;
+        :inc edi;
+    endwhile
+    :inc esi;
+endwhile
+:ecx = size1 + size2 - 1;
+while (sdword ptr ecx >= 0\n这个sdword ptr很重要)
+    :ans[ecx*4] ÷ 10;
+    :mov ans[ecx*4], 余数;
+    :dec ecx;
+    :add ans[ecx*4], 商;
+endwhile
+:如果需要输出负号，输出负号;
+:循环输出ans数组的每一位;
+end
+@enduml

@@ -1,0 +1,32 @@
+@startuml calc
+start
+:创建窗口属性;
+:注册、创建窗口;
+while (有消息，且消息不是退出（就是说点了按钮）)
+    :读取并转发消息消息;
+    :进入消息处理例程;
+    if (是数字或者小数点按钮么？) then(是)
+        :在buf末尾添加新的输入;
+        :使用atof把字符串buf变成real8的变量num;
+        :在窗口中显示当前buf;
+    elseif (是操作符按钮么？（+-*/三角函数）) then(是)
+        :记录操作符;
+        :把当前num压入FPU数据栈中;
+        :清空buf;
+        :在窗口中显示0;
+    elseif (是等于号么？) then(是)
+        if (记录的操作符是+-×÷之一么？) then(是)
+            :把当前num压入FPU数据栈中;
+        endif
+        :根据记录的操作符调用浮点运算指令;
+        :将运算结果弹出到num中;
+        :用sprintf把num的值打印到buf中;
+        :在窗口中显示当前buf;
+        :清空buf;
+    elseif (是AC么？) then(是)
+        :清空buf;
+        :在窗口中显示0;
+    endif
+endwhile
+end
+@enduml
